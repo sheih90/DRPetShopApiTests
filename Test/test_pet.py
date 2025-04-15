@@ -39,7 +39,7 @@ class TestPet:
             responce = requests.get(url=f"{BASE_URL}/pet/9999")
 
         with allure.step("Проверка статуса ответа"):
-            assert responce.status_code == 404, "Код ответа не совпал с ожидаемым"
+            assert responce.status_code == 404, "Код ответа не совпадает с ожидаемым"
 
         with allure.step("Проверка текстового содержимого ответа"):
             assert responce.text == "Pet not found", "Текстовое содержимое ответа не совпало с ожидаемым"
