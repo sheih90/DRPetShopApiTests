@@ -1,5 +1,8 @@
+from types import NoneType
+
 import allure
 import jsonschema
+import pytest
 import requests
 from .schemas.pet_schema import PET_SCHEMA
 
@@ -146,7 +149,6 @@ class TestPet:
             assert response.json()["name"] == payload["name"], "Имя не обновилось"
             assert response.json()["status"] == payload["status"], "Статус не обновился"
 
-
     @allure.title("Удаление питомца по ID")
     def test_delete_pet_by_ID(self, create_pet):
         with allure.step("Получение ID созданного питомца"):
@@ -172,13 +174,36 @@ class TestPet:
             assert response.status_code == 404, "Код ответа не совпал с ожидаемым"
 
 
+    @allure.title("Получение списка питомцев по статусу")
+    @pytest.mark.parametrize(
+        "status, expected_status_code, expected_error_message",
+        [
+            ("available", 200, None),  # Корректный статус
+            ("pending", 200, None),  # Корректный статус
+            ("sold", 200, None),  # Корректный статус
+            (None, 400, "No status provided. Try again?"),  # Пустой статус
+            ("new", 400, "Input error: query parameter `status value `new` is not in the allowable values `[available, pending, sold]`"),  # Некорректный статус
+        ]
+    )
+    def test_get_pets_by_status(self, status, expected_status_code, expected_error_message):
+        with allure.step(f"Отправка запроса на получение питомцев по статусу {status}"):
+            response = requests.get(f"{BASE_URL}/pet/findByStatus", params={"status": status})
 
+        with allure.step("Проверка статуса ответа"):
+            assert response.status_code == expected_status_code, "Статус отличается от ожидаемого"
 
+        with allure.step("Проверка формата данных или наличия ошибки"):
+            if expected_error_message:
+                # Проверяем, что ответ содержит текстовое сообщение об ошибке
+                try:
+                    # Попытка получить JSON-ответ
+                    error_message = response.json().get("message", "")
+                except ValueError:
+                    # Если ответ не JSON, используем текст ответа
+                    error_message = response.text
 
-
-
-
-
-
-
-
+                # Проверяем, что текст ошибки соответствует ожидаемому
+                assert error_message == expected_error_message, "Текст ошибки не совпал с ожидаемым"
+            else:
+                # Если ошибки нет, проверяем, что ответ содержит список питомцев
+                assert isinstance(response.json(), list), "Ответ должен быть списком питомцев"
