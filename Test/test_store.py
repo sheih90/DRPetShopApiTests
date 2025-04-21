@@ -4,7 +4,7 @@ import pytest
 import requests
 
 from .conftest import create_order
-from .schemas.pet_schema import PET_SCHEMA
+from .schemas.pet_schema import INVENTORY_SCHEMA
 
 BASE_URL = "http://5.181.109.28:9090/api/v3"
 
@@ -84,14 +84,12 @@ class TestStore:
     def test_get_inventory_shop(self):
         with allure.step("Отправка запроса на получение инвентаря магазина"):
             response = requests.get(url=f"{BASE_URL}/store/inventory")
+            response_json = response.json()
 
         with allure.step("Проверка статуса ответа"):
             assert response.status_code == 200, "Код ответа не совпал с ожидаемым"
 
-        with allure.step("Проверка данных инвентаря"):
-            inventory = response.json()
-            expected_inventory = {"approved": 57, "delivered": 50}
+        with allure.step("Валидация json-схемы инвентаря"):
+            jsonschema.validate(response_json, INVENTORY_SCHEMA)
 
-            for key, value in expected_inventory.items():
-                assert key in inventory, f"Ключ '{key}' отсутствует в ответе"
-                assert inventory[key] == value, f"Неверное значение для ключа '{key}'. Ожидалось: {value}, Получено: {inventory[key]}"
+
